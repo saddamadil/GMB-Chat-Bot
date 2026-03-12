@@ -1,0 +1,26 @@
+{
+  "name": "gmb-ai-agent",
+  "version": "1.0.0",
+  "description": "Google My Business AI Agent — Auto-reply reviews, Q&A, bookings, chat",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "setup": "npm install && cp .env.example .env && echo '\n✅ Setup complete! Edit .env with your credentials then run: npm start'"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.24.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-session": "^1.18.0",
+    "googleapis": "^140.0.0",
+    "pg": "^8.11.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

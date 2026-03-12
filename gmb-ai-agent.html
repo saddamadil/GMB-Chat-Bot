@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GMB AI Agent — Restaurant</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0d0a;
+    --surface: #1a1714;
+    --surface2: #221f1b;
+    --border: #2e2a25;
+    --accent: #e8a045;
+    --accent2: #c45c2e;
+    --gold: #d4a853;
+    --text: #f0ebe3;
+    --muted: #8a8078;
+    --green: #4caf7d;
+    --red: #e05c5c;
+    --blue: #5b9bd5;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+
+  /* Layout */
+  .app { display: flex; height: 100vh; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 240px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 24px 0;
+    flex-shrink: 0;
+  }
+  .logo {
+    padding: 0 20px 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    color: var(--accent);
+    letter-spacing: 0.5px;
+  }
+  .logo-sub {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 2px;
+  }
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(76,175,125,0.12);
+    border: 1px solid rgba(76,175,125,0.3);
+    color: var(--green);
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    margin-top: 10px;
+  }
+  .status-dot {
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .nav { padding: 20px 12px; flex: 1; }
+  .nav-section { margin-bottom: 24px; }
+  .nav-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    padding: 0 8px;
+    margin-bottom: 6px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13.5px;
+    color: var(--muted);
+    transition: all 0.2s;
+    margin-bottom: 2px;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active {
+    background: rgba(232,160,69,0.12);
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+  .badge {
+    margin-left: auto;
+    background: var(--accent2);
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+
+  /* Main content */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .topbar {
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+  }
+  .page-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    color: var(--text);
+  }
+  .page-subtitle { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .topbar-actions { display: flex; gap: 10px; align-items: center; }
+  .btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    font-weight: 500;
+  }
+  .btn-primary { background: var(--accent); color: #0f0d0a; }
+  .btn-primary:hover { background: #f0b055; transform: translateY(-1px); }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  .content { flex: 1; overflow-y: auto; padding: 24px 28px; }
+
+  /* Panels */
+  .panel { display: none; }
+  .panel.active { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Stats row */
+  .stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .stat-value { font-family: 'Playfair Display', serif; font-size: 32px; color: var(--text); margin: 6px 0 2px; }
+  .stat-change { font-size: 11px; color: var(--green); }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .card-title { font-family: 'Playfair Display', serif; font-size: 16px; }
+  .card-subtitle { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* Chat panel */
+  .chat-layout { display: grid; grid-template-columns: 1fr 340px; gap: 20px; height: calc(100vh - 160px); }
+  .chat-area { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .chat-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+  .chat-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg,var(--accent),var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .chat-name { font-weight: 600; font-size: 14px; }
+  .chat-status { font-size: 11px; color: var(--green); }
+  .messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+  .msg { max-width: 75%; display: flex; flex-direction: column; gap: 4px; animation: msgIn 0.3s ease; }
+  @keyframes msgIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .msg.user { align-self: flex-end; }
+  .msg.bot { align-self: flex-start; }
+  .msg-bubble {
+    padding: 10px 14px;
+    border-radius: 16px;
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+  .msg.user .msg-bubble { background: var(--accent); color: #0f0d0a; border-bottom-right-radius: 4px; }
+  .msg.bot .msg-bubble { background: var(--surface2); border-bottom-left-radius: 4px; border: 1px solid var(--border); }
+  .msg-time { font-size: 10px; color: var(--muted); padding: 0 4px; }
+  .msg.user .msg-time { text-align: right; }
+  .typing { display: flex; gap: 4px; align-items: center; padding: 12px 14px; background: var(--surface2); border-radius: 16px; border-bottom-left-radius: 4px; width: fit-content; border: 1px solid var(--border); }
+  .typing-dot { width: 7px; height: 7px; background: var(--muted); border-radius: 50%; animation: typingBounce 1.2s infinite; }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typingBounce { 0%,60%,100%{ transform:translateY(0); } 30%{ transform:translateY(-6px); } }
+  .chat-input-area { padding: 16px; border-top: 1px solid var(--border); display: flex; gap: 10px; }
+  .chat-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .chat-input:focus { border-color: var(--accent); }
+  .send-btn {
+    width: 42px; height: 42px;
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .send-btn:hover { background: #f0b055; transform: scale(1.05); }
+
+  /* Side info */
+  .side-info { display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+  .quick-reply-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .qr-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .qr-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Reviews */
+  .review-item { padding: 14px; background: var(--surface2); border-radius: 10px; border: 1px solid var(--border); margin-bottom: 12px; }
+  .review-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .reviewer-name { font-weight: 600; font-size: 14px; }
+  .stars { color: var(--gold); font-size: 13px; letter-spacing: 1px; }
+  .review-text { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 10px; }
+  .review-reply {
+    background: rgba(232,160,69,0.07);
+    border-left: 2px solid var(--accent);
+    padding: 10px 12px;
+    border-radius: 0 8px 8px 0;
+    font-size: 12.5px;
+    color: var(--text);
+    line-height: 1.6;
+    display: none;
+  }
+  .review-reply.visible { display: block; animation: fadeIn 0.4s ease; }
+  .review-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .action-btn {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+  }
+  .action-btn.generate { background: rgba(232,160,69,0.15); color: var(--accent); border: 1px solid rgba(232,160,69,0.3); }
+  .action-btn.generate:hover { background: rgba(232,160,69,0.25); }
+  .action-btn.post { background: var(--green); color: white; }
+  .action-btn.post:hover { opacity: 0.85; }
+  .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid rgba(232,160,69,0.3); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 5px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Q&A */
+  .qa-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+  .qa-q { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+  .qa-q::before { content: 'Q: '; color: var(--accent); }
+  .qa-a { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .qa-a::before { content: 'A: '; color: var(--gold); font-weight: 600; }
+  .qa-a.pending { color: var(--muted); font-style: italic; }
+  .qa-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    outline: none;
+    margin-bottom: 10px;
+    resize: vertical;
+    min-height: 60px;
+    transition: border-color 0.2s;
+  }
+  .qa-input:focus { border-color: var(--accent); }
+
+  /* Orders / Booking */
+  .booking-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .booking-form { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; display: block; }
+  .form-input, .form-select {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-input:focus, .form-select:focus { border-color: var(--accent); }
+  .form-select option { background: var(--surface); }
+
+  /* Bookings list */
+  .booking-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 10px;
+  }
+  .booking-avatar {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #2a2520, #3a3028);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .booking-name { font-weight: 600; font-size: 14px; }
+  .booking-detail { font-size: 12px; color: var(--muted); }
+  .booking-status {
+    margin-left: auto;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .booking-status.confirmed { background: rgba(76,175,125,0.15); color: var(--green); }
+  .booking-status.pending { background: rgba(232,160,69,0.15); color: var(--accent); }
+
+  /* Settings */
+  .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .toggle-label { font-size: 14px; }
+  .toggle-desc { font-size: 12px; color: var(--muted); }
+  .toggle {
+    width: 44px; height: 24px;
+    background: var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s;
+    border: none;
+    flex-shrink: 0;
+  }
+  .toggle.on { background: var(--accent); }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 18px; height: 18px;
+    background: white;
+    border-radius: 50%;
+    top: 3px; left: 3px;
+    transition: transform 0.2s;
+  }
+  .toggle.on::after { transform: translateX(20px); }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 28px; right: 28px;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    padding: 12px 18px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    z-index: 1000;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: all 0.3s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* Loading bar */
+  .loading-bar {
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent));
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 2px;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .loading-bar.active { display: block; }
+  @keyframes shimmer { 0%{ background-position: -200% 0; } 100%{ background-position: 200% 0; } }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-title">🍽 RestaurantAI</div>
+      <div class="logo-sub">GMB Agent</div>
+      <div class="status-pill"><span class="status-dot"></span> Agent Active</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-section">
+        <div class="nav-label">Overview</div>
+        <div class="nav-item active" onclick="showPanel('dashboard',this)">
+          <span class="icon">📊</span> Dashboard
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">AI Agent</div>
+        <div class="nav-item" onclick="showPanel('chat',this)">
+          <span class="icon">💬</span> Live Chat
+          <span class="badge">3</span>
+        </div>
+        <div class="nav-item" onclick="showPanel('reviews',this)">
+          <span class="icon">⭐</span> Reviews
+          <span class="badge">5</span>
+        </div>
+        <div class="nav-item" onclick="showPanel('qa',this)">
+          <span class="icon">❓</span> Q&A
+        </div>
+        <div class="nav-item" onclick="showPanel('bookings',this)">
+          <span class="icon">📅</span> Bookings
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Config</div>
+        <div class="nav-item" onclick="showPanel('settings',this)">
+          <span class="icon">⚙️</span> Settings
+        </div>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="page-title" id="page-title">Dashboard</div>
+        <div class="page-subtitle" id="page-subtitle">Your AI Agent overview</div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost">📤 Export</button>
+        <button class="btn btn-primary">🤖 Train Agent</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="loading-bar" id="loading-bar"></div>
+
+      <!-- DASHBOARD -->
+      <div class="panel active" id="panel-dashboard">
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-label">Auto-replies sent</div>
+            <div class="stat-value">248</div>
+            <div class="stat-change">↑ 18% this week</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Avg Rating</div>
+            <div class="stat-value">4.7⭐</div>
+            <div class="stat-change">↑ 0.2 vs last month</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Bookings Today</div>
+            <div class="stat-value">31</div>
+            <div class="stat-change">↑ 9 via AI chat</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Q&A answered</div>
+            <div class="stat-value">62</div>
+            <div class="stat-change">↑ 100% auto</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Recent Activity</div>
+                <div class="card-subtitle">Last 24 hours</div>
+              </div>
+            </div>
+            <div id="activity-feed">
+              <div class="review-item" style="padding:10px 14px;display:flex;gap:10px;align-items:flex-start">
+                <span style="font-size:18px">⭐</span>
+                <div>
+                  <div style="font-size:13px;font-weight:600">Replied to Priya S.'s 5-star review</div>
+                  <div style="font-size:12px;color:var(--muted)">2 min ago · Auto-reply</div>
+                </div>
+              </div>
+              <div class="review-item" style="padding:10px 14px;display:flex;gap:10px;align-items:flex-start;margin-top:8px">
+                <span style="font-size:18px">📅</span>
+                <div>
+                  <div style="font-size:13px;font-weight:600">New booking: Table for 4 — Rohan M.</div>
+                  <div style="font-size:12px;color:var(--muted)">15 min ago · via GMB Chat</div>
+                </div>
+              </div>
+              <div class="review-item" style="padding:10px 14px;display:flex;gap:10px;align-items:flex-start;margin-top:8px">
+                <span style="font-size:18px">❓</span>
+                <div>
+                  <div style="font-size:13px;font-weight:600">Answered: "Do you have vegan options?"</div>
+                  <div style="font-size:12px;color:var(--muted)">32 min ago · AI auto-answer</div>
+                </div>
+              </div>
+              <div class="review-item" style="padding:10px 14px;display:flex;gap:10px;align-items:flex-start;margin-top:8px">
+                <span style="font-size:18px">💬</span>
+                <div>
+                  <div style="font-size:13px;font-weight:600">Chat: Helped Amit find parking info</div>
+                  <div style="font-size:12px;color:var(--muted)">1 hr ago · AI resolved</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Agent Health</div>
+                <div class="card-subtitle">Live status</div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div class="toggle-row">
+                <div><div class="toggle-label">Review Auto-Reply</div><div class="toggle-desc">Replies to all new reviews</div></div>
+                <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+              </div>
+              <div class="toggle-row">
+                <div><div class="toggle-label">Chat Support</div><div class="toggle-desc">Handles customer queries</div></div>
+                <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+              </div>
+              <div class="toggle-row">
+                <div><div class="toggle-label">Q&A Auto-Answer</div><div class="toggle-desc">Answers GMB questions</div></div>
+                <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+              </div>
+              <div class="toggle-row">
+                <div><div class="toggle-label">Booking Agent</div><div class="toggle-desc">Takes reservations via chat</div></div>
+                <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CHAT PANEL -->
+      <div class="panel" id="panel-chat">
+        <div class="chat-layout">
+          <div class="chat-area">
+            <div class="chat-header">
+              <div class="chat-avatar">🤖</div>
+              <div>
+                <div class="chat-name">Restaurant AI Assistant</div>
+                <div class="chat-status">● Online — responding instantly</div>
+              </div>
+              <div style="margin-left:auto;font-size:12px;color:var(--muted)">Powered by Claude</div>
+            </div>
+            <div class="messages" id="messages">
+              <div class="msg bot">
+                <div class="msg-bubble">Namaste! 🙏 Welcome to our restaurant. I'm your AI assistant. I can help you with reservations, our menu, hours, special offers, or anything else. How can I help you today?</div>
+                <div class="msg-time">Just now</div>
+              </div>
+            </div>
+            <div class="chat-input-area">
+              <input class="chat-input" id="chat-input" placeholder="Type a message (try: 'book a table for 2 tomorrow at 7pm')" onkeydown="if(event.key==='Enter')sendChat()"/>
+              <button class="send-btn" onclick="sendChat()">↑</button>
+            </div>
+          </div>
+
+          <div class="side-info">
+            <div class="card" style="margin-bottom:0">
+              <div class="card-title" style="margin-bottom:12px">Quick Test Prompts</div>
+              <div class="quick-reply-grid">
+                <button class="qr-btn" onclick="setInput('What are your opening hours?')">🕐 Hours</button>
+                <button class="qr-btn" onclick="setInput('Do you have vegan options?')">🥗 Menu</button>
+                <button class="qr-btn" onclick="setInput('Book a table for 4 on Saturday at 7pm')">📅 Book</button>
+                <button class="qr-btn" onclick="setInput('Is parking available?')">🅿️ Parking</button>
+                <button class="qr-btn" onclick="setInput('What is your best dish?')">🍛 Special</button>
+                <button class="qr-btn" onclick="setInput('Do you take card payments?')">💳 Payment</button>
+              </div>
+            </div>
+            <div class="card" style="margin-bottom:0">
+              <div class="card-title" style="margin-bottom:12px">Today's Reservations</div>
+              <div style="display:flex;flex-direction:column;gap:8px" id="sidebar-bookings">
+                <div style="display:flex;justify-content:space-between;font-size:13px"><span>7:00 PM — Table 3</span><span style="color:var(--green)">Rohan M. ×4</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:13px"><span>7:30 PM — Table 7</span><span style="color:var(--green)">Priya S. ×2</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:13px"><span>8:00 PM — Table 1</span><span style="color:var(--accent)">Pending ×6</span></div>
+              </div>
+            </div>
+            <div class="card" style="margin-bottom:0">
+              <div class="card-title" style="margin-bottom:6px">Agent Context</div>
+              <div style="font-size:12px;color:var(--muted);line-height:1.7">
+                📍 Ahmedabad, Gujarat<br>
+                🕐 Mon–Sun: 11am – 11pm<br>
+                📞 +91 98765 43210<br>
+                🍽 Veg + Non-Veg · North Indian, Chinese<br>
+                💳 Cash, UPI, Cards
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- REVIEWS PANEL -->
+      <div class="panel" id="panel-reviews">
+        <div class="card">
+          <div class="card-header">
+            <div><div class="card-title">Pending Reviews</div><div class="card-subtitle">AI will generate & post replies</div></div>
+            <button class="btn btn-primary" onclick="autoReplyAll()">⚡ Auto-reply All</button>
+          </div>
+          <div id="reviews-list">
+            <div class="review-item" id="rev-1">
+              <div class="review-header">
+                <div>
+                  <div class="reviewer-name">Priya Sharma</div>
+                  <div style="font-size:11px;color:var(--muted)">2 hours ago · Google Maps</div>
+                </div>
+                <div class="stars">★★★★★</div>
+              </div>
+              <div class="review-text">"Absolutely loved the butter chicken! The ambiance is cozy and the staff was so friendly. Will definitely come back with family. Best restaurant in Ahmedabad!"</div>
+              <div class="review-reply" id="reply-1"></div>
+              <div class="review-actions">
+                <button class="action-btn generate" onclick="generateReply(1,'positive','butter chicken, great ambiance, friendly staff')">✨ Generate Reply</button>
+                <button class="action-btn post" id="post-1" style="display:none" onclick="postReply(1)">📤 Post Reply</button>
+              </div>
+            </div>
+            <div class="review-item" id="rev-2">
+              <div class="review-header">
+                <div>
+                  <div class="reviewer-name">Rahul Mehta</div>
+                  <div style="font-size:11px;color:var(--muted)">5 hours ago · Google Maps</div>
+                </div>
+                <div class="stars">★★★☆☆</div>
+              </div>
+              <div class="review-text">"Food was decent but the wait time was too long. Waited 45 minutes for our order. The biryani was good though. Hope they improve service speed."</div>
+              <div class="review-reply" id="reply-2"></div>
+              <div class="review-actions">
+                <button class="action-btn generate" onclick="generateReply(2,'negative','long wait time, biryani was good')">✨ Generate Reply</button>
+                <button class="action-btn post" id="post-2" style="display:none" onclick="postReply(2)">📤 Post Reply</button>
+              </div>
+            </div>
+            <div class="review-item" id="rev-3">
+              <div class="review-header">
+                <div>
+                  <div class="reviewer-name">Aisha Khan</div>
+                  <div style="font-size:11px;color:var(--muted)">1 day ago · Google Maps</div>
+                </div>
+                <div class="stars">★★★★★</div>
+              </div>
+              <div class="review-text">"Perfect place for family dinner! The veg thali is a must-try. Great value for money and very hygienic. Kids loved the ice cream too!"</div>
+              <div class="review-reply" id="reply-3"></div>
+              <div class="review-actions">
+                <button class="action-btn generate" onclick="generateReply(3,'positive','veg thali, family dinner, kids friendly')">✨ Generate Reply</button>
+                <button class="action-btn post" id="post-3" style="display:none" onclick="postReply(3)">📤 Post Reply</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q&A PANEL -->
+      <div class="panel" id="panel-qa">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+          <div class="card">
+            <div class="card-header">
+              <div><div class="card-title">Ask a Question</div><div class="card-subtitle">AI will answer instantly</div></div>
+            </div>
+            <textarea class="qa-input" id="qa-question" placeholder="e.g. Do you have outdoor seating? Are reservations required?"></textarea>
+            <button class="btn btn-primary" onclick="answerQuestion()" style="width:100%">🤖 Get AI Answer</button>
+            <div id="qa-answer-box" style="margin-top:16px"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div><div class="card-title">FAQ Database</div><div class="card-subtitle">Auto-populated by AI</div></div>
+            </div>
+            <div id="faq-list">
+              <div class="qa-item">
+                <div class="qa-q">What are your opening hours?</div>
+                <div class="qa-a">We are open every day from 11:00 AM to 11:00 PM, including all public holidays. Last order is taken at 10:30 PM.</div>
+              </div>
+              <div class="qa-item">
+                <div class="qa-q">Do you offer home delivery?</div>
+                <div class="qa-a">Yes! We deliver via Swiggy and Zomato. You can also call us directly for orders above ₹500 within 5km radius.</div>
+              </div>
+              <div class="qa-item">
+                <div class="qa-q">Is the restaurant vegetarian friendly?</div>
+                <div class="qa-a">Absolutely! We have a dedicated veg menu with 50+ dishes including Jain options. Our kitchen has separate cooking areas for veg and non-veg.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOOKINGS PANEL -->
+      <div class="panel" id="panel-bookings">
+        <div class="booking-grid">
+          <div class="booking-form">
+            <div class="card-title" style="margin-bottom:16px">📅 New Reservation</div>
+            <div class="form-group">
+              <label class="form-label">Customer Name</label>
+              <input class="form-input" id="b-name" placeholder="e.g. Arjun Patel" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Phone Number</label>
+              <input class="form-input" id="b-phone" placeholder="+91 98765 43210" />
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div class="form-group">
+                <label class="form-label">Date</label>
+                <input class="form-input" type="date" id="b-date" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Time</label>
+                <select class="form-select" id="b-time">
+                  <option>12:00 PM</option>
+                  <option>1:00 PM</option>
+                  <option>7:00 PM</option>
+                  <option>7:30 PM</option>
+                  <option>8:00 PM</option>
+                  <option>8:30 PM</option>
+                  <option>9:00 PM</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div class="form-group">
+                <label class="form-label">Guests</label>
+                <select class="form-select" id="b-guests">
+                  <option>1</option><option>2</option><option>3</option><option selected>4</option>
+                  <option>5</option><option>6</option><option>7+</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Occasion</label>
+                <select class="form-select">
+                  <option>Regular Dining</option>
+                  <option>Birthday</option>
+                  <option>Anniversary</option>
+                  <option>Business</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn btn-primary" style="width:100%" onclick="createBooking()">✅ Confirm Booking</button>
+          </div>
+          <div>
+            <div class="card" style="margin-bottom:16px">
+              <div class="card-title" style="margin-bottom:14px">Today's Bookings</div>
+              <div id="bookings-list">
+                <div class="booking-item">
+                  <div class="booking-avatar">👨</div>
+                  <div><div class="booking-name">Rohan Mehta</div><div class="booking-detail">7:00 PM · 4 guests · Table 3</div></div>
+                  <div class="booking-status confirmed">Confirmed</div>
+                </div>
+                <div class="booking-item">
+                  <div class="booking-avatar">👩</div>
+                  <div><div class="booking-name">Priya Singh</div><div class="booking-detail">7:30 PM · 2 guests · Table 7</div></div>
+                  <div class="booking-status confirmed">Confirmed</div>
+                </div>
+                <div class="booking-item">
+                  <div class="booking-avatar">👨‍👩‍👧</div>
+                  <div><div class="booking-name">Patel Family</div><div class="booking-detail">8:00 PM · 6 guests · Table 1</div></div>
+                  <div class="booking-status pending">Pending</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SETTINGS PANEL -->
+      <div class="panel" id="panel-settings">
+        <div class="settings-grid">
+          <div class="card">
+            <div class="card-title" style="margin-bottom:16px">🏪 Business Info</div>
+            <div class="form-group"><label class="form-label">Restaurant Name</label><input class="form-input" value="Spice Garden Restaurant" /></div>
+            <div class="form-group"><label class="form-label">Address</label><input class="form-input" value="SG Highway, Ahmedabad, Gujarat" /></div>
+            <div class="form-group"><label class="form-label">Phone</label><input class="form-input" value="+91 98765 43210" /></div>
+            <div class="form-group"><label class="form-label">Opening Hours</label><input class="form-input" value="Mon-Sun: 11:00 AM – 11:00 PM" /></div>
+            <button class="btn btn-primary" onclick="showToast('✅ Business info saved!')">Save Changes</button>
+          </div>
+          <div class="card">
+            <div class="card-title" style="margin-bottom:16px">🤖 Agent Behavior</div>
+            <div class="toggle-row">
+              <div><div class="toggle-label">Auto-reply reviews</div><div class="toggle-desc">Instant replies to all reviews</div></div>
+              <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+            </div>
+            <div class="toggle-row">
+              <div><div class="toggle-label">Auto-answer Q&A</div><div class="toggle-desc">Answer GMB questions automatically</div></div>
+              <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+            </div>
+            <div class="toggle-row">
+              <div><div class="toggle-label">Booking via chat</div><div class="toggle-desc">Accept reservations via chat</div></div>
+              <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+            </div>
+            <div class="toggle-row">
+              <div><div class="toggle-label">Escalate complaints</div><div class="toggle-desc">Alert owner for 1-2 star reviews</div></div>
+              <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+            </div>
+            <div class="form-group" style="margin-top:16px">
+              <label class="form-label">Reply Tone</label>
+              <select class="form-select">
+                <option>Warm & Friendly</option>
+                <option>Professional</option>
+                <option>Casual</option>
+                <option>Formal</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" onclick="showToast('✅ Agent settings saved!')">Save Settings</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const RESTAURANT_CONTEXT = `You are an AI support agent for "Spice Garden Restaurant" in Ahmedabad, Gujarat, India.
+Restaurant details:
+- Name: Spice Garden Restaurant
+- Location: SG Highway, Ahmedabad, Gujarat
+- Hours: Open every day 11:00 AM to 11:00 PM
+- Cuisine: North Indian, Chinese, Gujarati, Fast Food
+- Type: Both Veg and Non-Veg (separate kitchen areas)
+- Payment: Cash, UPI, all major cards
+- Phone: +91 98765 43210
+- Parking: Available (free)
+- Delivery: Via Swiggy and Zomato, also direct delivery for orders above ₹500 within 5km
+- Popular dishes: Butter Chicken, Biryani, Dal Baati Churma, Paneer Tikka, Veg Thali
+- Reservations: Required for groups of 5+, preferred for weekends
+
+Keep replies warm, helpful, concise (2-4 sentences). Use occasional emojis. Always try to help book a table or order if relevant.`;
+
+function showPanel(name, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  if (el) el.classList.add('active');
+  const titles = {
+    dashboard: ['Dashboard', 'Your AI Agent overview'],
+    chat: ['Live Chat', 'Test your AI chat agent'],
+    reviews: ['Review Manager', 'Auto-reply to Google reviews'],
+    qa: ['Q&A Manager', 'AI-powered question answering'],
+    bookings: ['Bookings', 'Reservation management'],
+    settings: ['Settings', 'Configure your AI agent']
+  };
+  document.getElementById('page-title').textContent = titles[name][0];
+  document.getElementById('page-subtitle').textContent = titles[name][1];
+}
+
+function setInput(text) {
+  document.getElementById('chat-input').value = text;
+  document.getElementById('chat-input').focus();
+}
+
+function getTime() {
+  return new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+}
+
+function addMessage(text, type) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + type;
+  div.innerHTML = `<div class="msg-bubble">${text}</div><div class="msg-time">${getTime()}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function showTyping() {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg bot';
+  div.id = 'typing-indicator';
+  div.innerHTML = `<div class="typing"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function removeTyping() {
+  const t = document.getElementById('typing-indicator');
+  if (t) t.remove();
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  addMessage(text, 'user');
+  showTyping();
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: RESTAURANT_CONTEXT,
+        messages: [{ role: 'user', content: text }]
+      })
+    });
+    const data = await res.json();
+    removeTyping();
+    const reply = data.content?.[0]?.text || "I'm sorry, I couldn't process that. Please try again!";
+    addMessage(reply, 'bot');
+
+    // Auto-detect booking intent
+    if (/book|reserve|table|reservation/i.test(text)) {
+      setTimeout(() => {
+        addMessage('I can confirm your booking right now! 📅 Just provide your name, date, time, and number of guests.', 'bot');
+      }, 800);
+    }
+  } catch(e) {
+    removeTyping();
+    addMessage('Sorry, there was a connection error. Please try again! 🙏', 'bot');
+  }
+}
+
+async function generateReply(id, sentiment, context) {
+  const btn = document.querySelector(`#rev-${id} .generate`);
+  btn.innerHTML = '<span class="spinner"></span>Generating...';
+  btn.disabled = true;
+
+  const prompt = sentiment === 'positive'
+    ? `Write a warm, genuine thank-you reply to a 5-star Google review for our restaurant. Context: ${context}. Keep it 2-3 sentences, personal, mention the specific dish/experience. Sign off as "The Spice Garden Team".`
+    : `Write a professional, empathetic reply to a 3-star Google review for our restaurant. Acknowledge the issue, apologize sincerely, and invite them back. Context: ${context}. Keep it 2-3 sentences. Sign off as "The Spice Garden Team".`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || 'Thank you for your review!';
+    const replyEl = document.getElementById(`reply-${id}`);
+    replyEl.textContent = reply;
+    replyEl.classList.add('visible');
+    document.getElementById(`post-${id}`).style.display = 'inline-block';
+    btn.innerHTML = '✅ Generated';
+    btn.style.opacity = '0.5';
+  } catch(e) {
+    btn.innerHTML = '✨ Generate Reply';
+    btn.disabled = false;
+    showToast('⚠️ Error generating reply');
+  }
+}
+
+function postReply(id) {
+  const btn = document.getElementById(`post-${id}`);
+  btn.textContent = '✅ Posted!';
+  btn.style.background = 'var(--muted)';
+  btn.disabled = true;
+  showToast('✅ Reply posted to Google My Business!');
+}
+
+async function autoReplyAll() {
+  showToast('⚡ Generating all replies...');
+  setTimeout(() => generateReply(1,'positive','butter chicken, great ambiance, friendly staff'), 300);
+  setTimeout(() => generateReply(2,'negative','long wait time, biryani was good'), 1200);
+  setTimeout(() => generateReply(3,'positive','veg thali, family dinner, kids friendly'), 2100);
+}
+
+async function answerQuestion() {
+  const q = document.getElementById('qa-question').value.trim();
+  if (!q) return;
+  const box = document.getElementById('qa-answer-box');
+  box.innerHTML = '<div class="review-item" style="padding:12px"><span class="spinner"></span> AI is answering...</div>';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: RESTAURANT_CONTEXT + '\nAnswer the customer Q&A question concisely and helpfully for Google My Business.',
+        messages: [{ role: 'user', content: q }]
+      })
+    });
+    const data = await res.json();
+    const answer = data.content?.[0]?.text || 'Please contact us for more information.';
+    box.innerHTML = `<div class="qa-item"><div class="qa-q">${q}</div><div class="qa-a">${answer}</div><div style="margin-top:10px;display:flex;gap:8px"><button class="action-btn generate" onclick="addToFAQ('${q.replace(/'/g,"\\'")}','${answer.replace(/'/g,"\\'").replace(/\n/g,' ')}')">📌 Add to FAQ</button><button class="action-btn post" onclick="showToast('✅ Posted to GMB Q&A!')">📤 Post to GMB</button></div></div>`;
+  } catch(e) {
+    box.innerHTML = '<div style="color:var(--red);font-size:13px">⚠️ Error. Please try again.</div>';
+  }
+}
+
+function addToFAQ(q, a) {
+  const list = document.getElementById('faq-list');
+  const div = document.createElement('div');
+  div.className = 'qa-item';
+  div.innerHTML = `<div class="qa-q">${q}</div><div class="qa-a">${a}</div>`;
+  list.insertBefore(div, list.firstChild);
+  showToast('📌 Added to FAQ database!');
+}
+
+function createBooking() {
+  const name = document.getElementById('b-name').value.trim();
+  const phone = document.getElementById('b-phone').value.trim();
+  const date = document.getElementById('b-date').value;
+  const time = document.getElementById('b-time').value;
+  const guests = document.getElementById('b-guests').value;
+  if (!name) { showToast('⚠️ Please enter customer name'); return; }
+
+  const list = document.getElementById('bookings-list');
+  const emojis = ['👨','👩','👨‍👩‍👧','🧑','👴'];
+  const emoji = emojis[Math.floor(Math.random()*emojis.length)];
+  const div = document.createElement('div');
+  div.className = 'booking-item';
+  div.style.animation = 'fadeIn 0.4s ease';
+  div.innerHTML = `<div class="booking-avatar">${emoji}</div><div><div class="booking-name">${name}</div><div class="booking-detail">${time} · ${guests} guests · ${date || 'Today'}</div></div><div class="booking-status confirmed">Confirmed</div>`;
+  list.insertBefore(div, list.firstChild);
+
+  document.getElementById('b-name').value = '';
+  document.getElementById('b-phone').value = '';
+  showToast(`✅ Booking confirmed for ${name}!`);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// Set default date
+document.getElementById('b-date').valueAsDate = new Date();
+</script>
+</body>
+</html>
