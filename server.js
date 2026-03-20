@@ -16,7 +16,7 @@ require('dotenv').config();
 
 const db           = require('./services/db');
 const googleAuth   = require('./services/googleAuth');
-const webhookRoute = require('./routes/webhook');
+const webhookRoute = require('./route/webhook');
 
 // ── Auto-create all tables on startup ──────────────────────────────────────
 async function initDatabase() {
